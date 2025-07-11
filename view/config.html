@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>API 请求构造器</title>
+        <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/static/highlight/styles/intellij-light.min.css" />
+    <script src="/static/highlight/highlight.min.js"></script>
+    <script>
+      hljs.highlightAll();
+    </script>
+    <style>
+      .container {
+        max-width: 1200px; /* 修改为1200px */
+        margin: 10px auto 40px auto;
+        padding: 10px 30px 30px 30px;
+        display: flex;
+        gap: 30px;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 12px; /* 原8px */
+        font-size: 16px; /* 输入文字放大 */
+        height: 3em; /* 修改为3em，增加输入框高度 */
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+
+      textarea {
+        height: 3em; /* 修改为3em，增加输入框高度 */
+        font-family: monospace;
+      }
+
+      button {
+        background: #007bff;
+        color: white;
+        padding: 15px 30px;
+        font-size: 18px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #0056b3;
+      }
+
+      .left-panel,
+      .right-panel {
+        min-width: 500px;
+        flex: 1; /* 使左右面板等宽 */
+        background: #fff;
+        padding: 25px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .right-panel-content {
+        overflow-y: auto; /* 添加垂直滚动条 */
+        max-height: calc(100vh - 200px); /* 调整最大高度，确保滚动条生效 */
+      }
+
+      .data-list {
+        margin-top: 20px;
+      }
+
+      .data-item {
+        padding: 15px;
+        margin-bottom: 10px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border: 1px solid #eee;
+        position: relative; /* 添加相对定位 */
+      }
+
+      .data-item pre {
+        margin: 0;
+        white-space: pre-wrap;
+        font-family: "Courier New", monospace;
+      }
+
+      .edit-button {
+        position: absolute;
+        top: 10px;
+        right: 60px; /* 调整位置，避免与删除按钮重叠 */
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 5px 10px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .edit-button:hover {
+        background: #218838;
+      }
+
+      .delete-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 5px 10px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .delete-button:hover {
+        background: #c82333;
+      }
+
+      .filter-group {
+        display: flex;
+        align-items: center; /* 确保文本、输入框、按钮在同一行 */
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      #filterInput {
+        height: 2.5em; /* 减小输入框高度 */
+        padding: 8px; /* 调整内边距 */
+        font-size: 14px; /* 调整字体大小 */
+        flex: 1; /* 输入框占据剩余空间 */
+      }
+
+      #filterButton {
+        height: 2.5em; /* 减小按钮高度 */
+        padding: 0 15px; /* 调整内边距 */
+        font-size: 14px; /* 调整字体大小 */
+      }
+      .nav {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="nav">
+      <a href="/notifyLog/view">请求日志</a>
+      <a href="/config">请求构造器</a>
+    </div>
+    <div class="container">
+      <!-- 左侧表单 -->
+      <div class="left-panel">
+        <h2>API 请求构造器</h2>
+        <!-- 保持原有表单结构不变 -->
+
+        <form id="requestForm">
+          <div class="form-group">
+            <label>请求路径 (path):</label>
+            <input
+              type="text"
+              name="path"
+              required
+              placeholder="/api/endpoint"
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>请求方法 (method):</label>
+            <select name="method">
+              <option value="GET">GET</option>
+              <option value="POST" selected>POST</option>
+              <option value="PUT">PUT</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Content-Type:</label>
+            <select name="contentType">
+              <option value="application/json" selected>
+                application/json
+              </option>
+              <option value="text/plain">text/plain</option>
+              <option value="multipart/form-data">multipart/form-data</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>响应头 (headers):</label>
+            <textarea
+              name="headers"
+              placeholder='{"Authorization": "Bearer token"}'
+            >
+{"Authorization": ""}</textarea
+            >
+            <!-- 修复缩进问题 -->
+          </div>
+
+          <div class="form-group">
+            <label>响应体 (body):</label>
+            <textarea name="body" placeholder='{"key": "value"}'></textarea>
+            <!-- 修复缩进问题 -->
+          </div>
+
+          <div class="form-group">
+            <label>备注 (remark):</label>
+            <textarea name="remark" placeholder="请输入备注信息"></textarea>
+          </div>
+
+          <button type="submit">发送请求</button>
+        </form>
+      </div>
+      <!-- 右侧数据展示 -->
+      <div class="right-panel">
+        <h2>配置列表</h2>
+        <div class="filter-group">
+          <input type="text" id="filterInput" placeholder="输入路径进行筛选" />
+          <button id="filterButton">筛选</button>
+        </div>
+        <div class="right-panel-content">
+          <div class="data-list" id="configList">
+            <!-- 数据将动态加载到这里 -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document
+        .getElementById("requestForm")
+        .addEventListener("submit", async e => {
+          e.preventDefault();
+
+          const formData = {
+            path: e.target.path.value,
+            method: e.target.method.value,
+            contentType: e.target.contentType.value,
+            headers: JSON.parse(e.target.headers.value || "{}"),
+            body: e.target.body.value,
+            remark: e.target.remark.value
+          };
+
+          try {
+            const response = await fetch("./config/set", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(formData)
+            });
+            // 处理响应
+            if (!response.ok) {
+              throw new Error("请求失败");
+            }
+            // 请求成功后刷新右侧列表
+            const configs = await fetchConfigs();
+            renderConfigs(configs);
+            Swal.fire({
+              icon: "success",
+              title: "请求成功",
+              showConfirmButton: false,
+              timer: 1500
+            });
+          } catch (error) {
+            Swal.fire({
+              icon: "error",
+              title: "请求失败",
+              text: error.message
+            });
+          }
+        });
+      // 新增数据获取函数
+      async function fetchConfigs() {
+        try {
+          const response = await fetch("./config/get");
+          if (!response.ok) throw new Error("获取数据失败");
+          return await response.json();
+        } catch (error) {
+          console.error("Error:", error);
+          return [];
+        }
+      }
+
+      // 新增数据渲染函数
+      function renderConfigs(configs) {
+        const container = document.getElementById("configList");
+        container.innerHTML = configs
+          .map(
+            config => `
+                <div class="data-item">
+                    <button class="edit-button" onclick='editConfig(${JSON.stringify(
+                      config
+                    )})'>修改</button>
+                    <button class="delete-button" onclick="deleteConfig('${
+                      config.path
+                    }')">删除</button>
+                    <pre><code class="language-json">${JSON.stringify(
+                      {
+                        path: config.path,
+                        method: config.method,
+                        contentType: config.contentType,
+                        headers: config.headers,
+                        body: config.body,
+                        remark: config.remark
+                      },
+                      null,
+                      2
+                    )}</code></pre>
+                </div>
+            `
+          )
+          .join("");
+          hljs.highlightAll();
+      }
+
+      // 新增筛选功能
+      document
+        .getElementById("filterButton")
+        .addEventListener("click", async () => {
+          const filterValue = document
+            .getElementById("filterInput")
+            .value.toLowerCase();
+          const configs = await fetchConfigs();
+          const filteredConfigs = configs.filter(config =>
+            config.path.toLowerCase().includes(filterValue)
+          );
+          // 数组反转
+          filteredConfigs.reverse();
+          renderConfigs(filteredConfigs);
+        });
+
+      // 新增修改功能
+      function editConfig(config) {
+        console.log("config", config);
+        const form = document.getElementById("requestForm");
+        if (!form) {
+          console.error("Form not found");
+          return;
+        }
+        form.path.value = config.path || "";
+        form.method.value = config.method || "POST";
+        form.contentType.value = config.contentType || "application/json";
+        form.headers.value = JSON.stringify(config.headers || {}, null, 2);
+        form.body.value = config.body || "";
+        form.remark.value = config.remark || "";
+      }
+
+      // 新增删除功能
+      async function deleteConfig(path) {
+        try {
+          const response = await fetch(
+            `./config/delete?path=${encodeURIComponent(path)}`,
+            {
+              method: "DELETE"
+            }
+          );
+          if (!response.ok) throw new Error("删除失败");
+          const configs = await fetchConfigs();
+          configs.reverse();
+          renderConfigs(configs);
+          Swal.fire({
+            icon: "success",
+            title: "删除成功",
+            showConfirmButton: false,
+            timer: 1500
+          });
+        } catch (error) {
+          Swal.fire({
+            icon: "error",
+            title: "删除失败",
+            text: error.message
+          });
+        }
+      }
+
+      // 初始化加载数据
+      window.addEventListener("DOMContentLoaded", async () => {
+        const configs = await fetchConfigs();
+        configs.reverse();
+        renderConfigs(configs);
+      });
+    </script>
+  </body>
+</html>

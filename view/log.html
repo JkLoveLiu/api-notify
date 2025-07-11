@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>请求日志</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link
+      rel="stylesheet"
+      href="/static/highlight/styles/intellij-light.min.css"
+    />
+    <script src="/static/highlight/highlight.min.js"></script>
+    <script>
+      hljs.highlightAll();
+    </script>
+    <style>
+      .container {
+        margin: 0 auto;
+        max-width: 1200px; /* 新增宽度限制 */
+        padding: 0 20px;
+        font-family: Arial, sans-serif;
+      }
+
+      .filter-box {
+        margin-bottom: 20px;
+        padding: 10px;
+        background: #f5f5f5;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+      }
+
+      .filter-group {
+        display: flex;
+        gap: 10px;
+      }
+
+      #filterInput {
+        width: 600px;
+        flex: 1;
+        padding: 5px;
+        font-size: 14px;
+      }
+
+      #filterButton,
+      #refreshButton,
+      #clearButton {
+        padding: 5px 10px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .log-item {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        background: #fff;
+      }
+      /* 如果需要更精细控制，可增加以下样式 */
+      .log-item pre {
+        /* font-family: "Courier New", monospace; 使用等宽字体 */
+        line-height: 1.5; /* 增加行高提升可读性 */
+        white-space: pre-wrap; /* 允许自动换行 */
+      }
+      .delete-btn {
+        float: right;
+        background: #ff4d4f;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+
+      pre {
+        background: #f8f8f8;
+        padding: 10px;
+        border-radius: 3px;
+        overflow-x: auto;
+        font-size: 14px; /* 新增字体大小设置 */
+      }
+
+      #logsContainer {
+        overflow-y: scroll;
+        max-height: 700px;
+      }
+      .nav {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="nav">
+      <a href="/notifyLog/view">请求日志</a>
+      <a href="/config">请求构造器</a>
+    </div>
+    <div class="container">
+      <h1>请求日志</h1>
+
+      <div class="filter-box">
+        <label>筛选条件：</label>
+        <div class="filter-group">
+          <input
+            type="text"
+            id="filterInput"
+            placeholder="输入方法或URL进行筛选"
+          />
+          <button id="filterButton">筛选</button>
+          <button id="refreshButton">刷新</button>
+          <button id="clearButton">删除全部</button>
+        </div>
+      </div>
+
+      <div id="logsContainer">
+        <!-- 日志项将动态插入到这里 -->
+      </div>
+    </div>
+
+    <script>
+      // 获取日志数据
+      async function fetchLogs() {
+        try {
+          const response = await fetch("/notifyLog/get");
+          if (!response.ok) throw new Error("获取日志失败");
+          return await response.json();
+        } catch (error) {
+          console.error("Error:", error);
+          return [];
+        }
+      }
+
+      // 渲染日志列表
+      async function renderLogs(filterText = "") {
+        const container = document.getElementById("logsContainer");
+        container.innerHTML = "";
+
+        const logs = await fetchLogs();
+        logs
+          .filter(log => {
+            const lowerFilter = filterText.toLowerCase();
+            return log.path.toLowerCase().includes(lowerFilter);
+          })
+          .sort((a, b) => b.id - a.id) // 按照时间降序排序
+          .forEach(log => {
+            const logElement = document.createElement("div");
+            logElement.className = "log-item";
+            logElement.innerHTML = `
+          <button class="delete-btn" onclick="deleteLog('${
+            log.id
+          }')">删除</button>
+          <h3>${log.method} ${log.path} &nbsp;&nbsp;&nbsp;&nbsp;${log.date}</h3>
+          <pre><code class="language-json">${JSON.stringify(
+            log,
+            null,
+            2
+          )}</code></pre>
+        `;
+            container.appendChild(logElement);
+          });
+        hljs.highlightAll();
+      }
+
+      // 删除日志
+      async function deleteLog(id) {
+        try {
+          const response = await fetch(`/notifyLog/delete?id=${id}`, {
+            method: "DELETE"
+          });
+          if (!response.ok) throw new Error("删除日志失败");
+          renderLogs(document.getElementById("filterInput").value);
+          console.log("response", response);
+          Swal.fire({
+            icon: "success",
+            title: "删除成功",
+            showConfirmButton: false,
+            timer: 1500
+          });
+        } catch (error) {
+          Swal.fire({
+            icon: "error",
+            title: "删除失败",
+            text: error.message
+          });
+        }
+      }
+      // 刷新
+      document
+        .getElementById("refreshButton")
+        .addEventListener("click", function () {
+          renderLogs();
+        });
+
+      // 修改筛选功能
+      document
+        .getElementById("filterButton")
+        .addEventListener("click", function () {
+          const filterText = document.getElementById("filterInput").value;
+          renderLogs(filterText);
+        });
+
+      // 删除全部日志
+      document
+        .getElementById("clearButton")
+        .addEventListener("click", async function () {
+          try {
+            const response = await fetch("/notifyLog/clear", {
+              method: "DELETE"
+            });
+            if (!response.ok) throw new Error("删除全部日志失败");
+            renderLogs();
+            Swal.fire({
+              icon: "success",
+              title: "删除全部成功",
+              showConfirmButton: false,
+              timer: 1500
+            });
+          } catch (error) {
+            Swal.fire({
+              icon: "error",
+              title: "删除全部失败",
+              text: error.message
+            });
+          }
+        });
+
+      // 初始渲染
+      renderLogs();
+    </script>
+  </body>
+</html>
