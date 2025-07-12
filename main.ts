@@ -47,9 +47,18 @@ import { serve } from "https://deno.land/std@0.121.0/http/server.ts";
 // console.log(`Server running at http://0.0.0.0:${port}`);
 
 // minimal.ts
-console.log("MINIMAL APP STARTED");
-Deno.serve({ port: 8080, hostname: "0.0.0.0" }, () => {
-  console.log("Request received");
-  return new Response("Minimal app works!");
-});
+// 加上端口
+const port = Number(Deno.env.get("PORT")) || 8000;
+const host = "0.0.0.0";
+const baseUrl = `http://${host}:${port}`;
+console.log(`Server running on ${baseUrl}`);
+
+Deno.serve(
+  {
+    port: port,
+    hostname: host
+  },
+  (req: Request) => new Response("Hello World")
+);
+
 
