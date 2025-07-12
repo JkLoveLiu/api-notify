@@ -5,7 +5,7 @@ import NotifyController from "./controller/notify/NotifyController.ts";
 import NotifyLogController from "./controller/notifyLog/NotifyLogController.ts";
 
 const kv = await Deno.openKv();
-
+const port = Number(Deno.env.get("PORT"))
 serve(
   async req => {
     const url = new URL(req.url);
@@ -42,5 +42,8 @@ serve(
         return Utils.notFound();
     }
   },
-  { port: Deno.env.get("PORT") }
+  { port: port },
+  hostname: "0.0.0.0"
 );
+console.log(`Server running at http://0.0.0.0:${port}`);
+
