@@ -42,8 +42,7 @@ serve(
         return Utils.notFound();
     }
   },
-  { port: port },
-  hostname: "0.0.0.0"
+  { port: port }
 );
 console.log(`Server running at http://0.0.0.0:${port}`);
 
