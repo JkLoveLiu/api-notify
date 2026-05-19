@@ -5,7 +5,7 @@ import NotifyController from "./controller/notify/NotifyController.ts";
 import NotifyLogController from "./controller/notifyLog/NotifyLogController.ts";
 
 const kv = await Deno.openKv();
-const port = Number(Deno.env.get("PORT"))
+const port = Number(Deno.env.get("PORT")) || 8000
 serve(
   async req => {
     const url = new URL(req.url);
